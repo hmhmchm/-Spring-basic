@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <!--    jquery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <title>Spring 게시판</title>
+</head>
+<script>
+    $(document).ready(function () {
+        // HTML 문서를 로드할 때마다 실행합니다.
+        getNotices();
+    })
+
+    // 게시판 내용을 불러와서 보여준다.
+    function getNotices() {
+        // 안쌓이고 새롭게 얻어오도록 비워준다.
+        $('#notices-table').empty();
+        $.ajax({
+            type: "GET",
+            url: "/api/notices",
+            data: {},
+            success: function (response) {
+                for (let i = 0; i < response.length; i++) {
+                    let message = response[i];
+                    let id = message['id'];
+                    let username = message['username'];
+                    let title = message['title'];
+                    // let contents = message['contents'];
+                    let createdAt = message['createdAt'];
+                    // let modifiedAt = message['modifiedAt'];
+
+                    let tempHtml = `
+                                    <tbody>
+                                            <tr>
+                                                <td>${username}</td>
+                                                <td>${title}</td>
+                                                <td>${createdAt}</td>
+                                                <td><button type="button" id="modal_btn2" class="btn btn-light" onclick="moveDetail(${id})">내용보기</button></td>
+                                            </tr>
+                                    </tbody>`;
+                    $('#notices-table').append(tempHtml);
+                }
+            }
+        });
+    }
+
+    // 글 작성하기
+    function writePost() {
+        let title = $('#title').val();
+        let username = $('#username').val();
+        let contents = $('#contents').val();
+        let data = {
+            'username': username,
+            'title': title,
+            'contents': contents
+        }
+        $.ajax({
+            type: "POST",
+            url: "/api/notices",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert('메시지가 성공적으로 작성되었습니다.');
+                window.location.reload();
+            }
+        });
+    }
+    // 상세페이지로
+    function moveDetail(id){
+        window.location.href = `detail.html?id=${id}`;
+    }
+
+    // 모달창 띄우기
+    window.onload = function () {
+
+        function onClick() {
+            document.querySelector('.modal_wrap').style.display = 'block';
+            document.querySelector('.black_bg').style.display = 'block';
+        }
+
+        function offClick() {
+            document.querySelector('.modal_wrap').style.display = 'none';
+            document.querySelector('.black_bg').style.display = 'none';
+        }
+
+        function onClickContents() {
+            document.querySelector('.modal_wrap2').style.display = 'block';
+            document.querySelector('.black_bg2').style.display = 'block';
+        }
+
+        function offClickContents() {
+            document.querySelector('.modal_wrap2').style.display = 'none';
+            document.querySelector('.black_bg2').style.display = 'none';
+        }
+
+        document.getElementById('modal_btn').addEventListener('click', onClick);
+        document.querySelector('.modal_close').addEventListener('click', offClick);
+        document.getElementById('modal_btn2').addEventListener('click', onClickContents);
+        document.querySelector('.modal_close2').addEventListener('click', offClickContents);
+
+    };
+
+</script>
+<style>
+    .modal_wrap {
+        display: none;
+        width: 500px;
+        height: 500px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin: -250px 0 0 -250px;
+        background: #eee;
+        z-index: 2;
+    }
+
+    .black_bg {
+        display: none;
+        position: absolute;
+        content: "";
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        top: 0;
+        left: 0;
+        z-index: 1;
+    }
+
+    .modal_close {
+        width: 26px;
+        height: 26px;
+        position: absolute;
+        top: -30px;
+        right: 0;
+    }
+
+    .modal_close > a {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: url(https://img.icons8.com/metro/26/000000/close-window.png);
+        text-indent: -9999px;
+    }
+
+    .modal_wrap2 {
+        display: none;
+        width: 500px;
+        height: 500px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin: -250px 0 0 -250px;
+        background: #eee;
+        z-index: 2;
+    }
+
+    .black_bg2 {
+        display: none;
+        position: absolute;
+        content: "";
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        top: 0;
+        left: 0;
+        z-index: 1;
+    }
+
+    .modal_close2 {
+        width: 26px;
+        height: 26px;
+        position: absolute;
+        top: -30px;
+        right: 0;
+    }
+
+    .modal_close2 > a {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: url(https://img.icons8.com/metro/26/000000/close-window.png);
+        text-indent: -9999px;
+    }
+</style>
+<body>
+<table>
+    <thead>
+    <tr>
+        <th>작성자</th>
+        <th>제목</th>
+        <th>날짜</th>
+    </tr>
+    </thead>
+</table>
+<div id="notices-table">
+
+</div>
+
+<button type="button" id="modal_btn" class="btn btn-primary">작성하기</button>
+<div class="black_bg"></div>
+<div class="modal_wrap">
+    <div class="modal_close"><a href="#">close</a></div>
+    <div>
+        작성자 : <input type="text" id="username" name="st_name"><br>
+        제목 : <input type="text" id="title" name="st_id"><br>
+        내용 : <input type="text" id="contents" name="department"><br>
+        <button type="button" onclick="writePost()" class="btn btn-warning">등록하기</button>
+    </div>
+</div>
+<div class="black_bg2"></div>
+<div class="modal_wrap2">
+    <div class="modal_close2"><a href="#">close</a></div>
+    <div>
+        조회테스트
+    </div>
+</div>
+</body>
+</html>
