@@ -1,66 +1,39 @@
 package com.sparta.work01.service;
 
 import com.sparta.work01.dto.KakaoUserInfoDto;
-import com.sparta.work01.dto.SignupRequestDto;
 import com.sparta.work01.model.User;
 import com.sparta.work01.model.UserRoleEnum;
 import com.sparta.work01.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sparta.work01.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Optional;
+import java.util.UUID;
 
 @Service
-public class UserService {
+public class KakaoUserService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private static final String ADMIN_TOKEN = "AAABnv/xRVklrnYxKZ0aHgTBcXukeZygoC";
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public KakaoUserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-    }
-
-    public void registerUser(SignupRequestDto requestDto) {
-// 회원 ID 중복 확인
-        String username = requestDto.getUsername();
-        Optional<User> found = userRepository.findByUsername(username);
-        if (found.isPresent()) {
-            throw new IllegalArgumentException("중복된 사용자 ID 가 존재합니다.");
-        }
-
-// 패스워드 암호화
-        String password = passwordEncoder.encode(requestDto.getPassword());
-        String email = requestDto.getEmail();
-
-// 사용자 ROLE 확인
-        UserRoleEnum role = UserRoleEnum.USER;
-        if (requestDto.isAdmin()) {
-            if (!requestDto.getAdminToken().equals(ADMIN_TOKEN)) {
-                throw new IllegalArgumentException("관리자 암호가 틀려 등록이 불가능합니다.");
-            }
-            role = UserRoleEnum.ADMIN;
-        }
-
-        User user = new User(username, password, email, role);
-        userRepository.save(user);
-
-        // 4. 강제 로그인 처리
-//        UserDetails userDetails = new UserDetailsImpl(kakaoUser);
-//        Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-//        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     public void kakaoLogin(String code) throws JsonProcessingException {
@@ -70,6 +43,11 @@ public class UserService {
 // 2. "액세스 토큰"으로 "카카오 사용자 정보" 가져오기
         KakaoUserInfoDto kakaoUserInfo = getKakaoUserInfo(accessToken);
 
+// 3. "카카오 사용자 정보"로 필요시 회원가입
+        User kakaoUser = registerKakaoUserIfNeeded(kakaoUserInfo);
+
+// 4. 강제 로그인 처리
+        forceLogin(kakaoUser);
     }
 
     private String getAccessToken(String code) throws JsonProcessingException {
@@ -128,5 +106,36 @@ public class UserService {
                 .get("email").asText();
 
         return new KakaoUserInfoDto(id, nickname, email);
+    }
+
+    private User registerKakaoUserIfNeeded(KakaoUserInfoDto kakaoUserInfo) {
+// DB 에 중복된 Kakao Id 가 있는지 확인
+        Long kakaoId = kakaoUserInfo.getId();
+        User kakaoUser = userRepository.findByKakaoId(kakaoId)
+                .orElse(null);
+        if (kakaoUser == null) {
+// 회원가입
+// username: kakao nickname
+            String nickname = kakaoUserInfo.getNickname();
+
+// password: random UUID
+            String password = UUID.randomUUID().toString();
+            String encodedPassword = passwordEncoder.encode(password);
+
+// email: kakao email
+            String email = kakaoUserInfo.getEmail();
+// role: 일반 사용자
+            UserRoleEnum role = UserRoleEnum.USER;
+
+            kakaoUser = new User(nickname, encodedPassword, email, role, kakaoId);
+            userRepository.save(kakaoUser);
+        }
+        return kakaoUser;
+    }
+
+    private void forceLogin(User kakaoUser) {
+        UserDetails userDetails = new UserDetailsImpl(kakaoUser);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

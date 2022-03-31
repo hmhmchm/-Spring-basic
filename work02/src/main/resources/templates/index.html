@@ -54,7 +54,7 @@
     // 글 작성하기
     function writePost() {
         let title = $('#title').val();
-        let username = $('#username').val();
+        let username = $('#username').text();
         let contents = $('#contents').val();
         let data = {
             'username': username,
@@ -91,21 +91,8 @@
             document.querySelector('.black_bg').style.display = 'none';
         }
 
-        function onClickContents() {
-            document.querySelector('.modal_wrap2').style.display = 'block';
-            document.querySelector('.black_bg2').style.display = 'block';
-        }
-
-        function offClickContents() {
-            document.querySelector('.modal_wrap2').style.display = 'none';
-            document.querySelector('.black_bg2').style.display = 'none';
-        }
-
         document.getElementById('modal_btn').addEventListener('click', onClick);
         document.querySelector('.modal_close').addEventListener('click', offClick);
-        document.getElementById('modal_btn2').addEventListener('click', onClickContents);
-        document.querySelector('.modal_close2').addEventListener('click', offClickContents);
-
     };
 
 </script>
@@ -193,10 +180,10 @@
 <body>
 <div class="header" style="position:relative;">
     <div id="header-title-login-user">
-        <span th:text="${username}"></span> 님의
+        <p>지금 로그인한 아이디 : <span id="username" th:text="${username}"></span> 님 </p>
     </div>
     <div id="header-title-select-shop">
-        로그인 구현하고 게시판 넘어가기
+        <h4 style="text-align: center"> 게시판 </h4>
     </div>
 
     <form id="my_form" method="post" action="/user/logout">
@@ -212,18 +199,12 @@
 <div class="modal_wrap">
     <div class="modal_close"><a href="#">close</a></div>
     <div>
-        작성자 : <input type="text" id="username" name="st_name" style="margin: auto; "><br>
+<!--        작성자 : <input type="text" id="username" name="st_name" style="margin: auto; "><br>-->
         제목 : <input type="text" id="title" name="st_id" style="margin: auto; "><br>
         내용 : <input type="text" id="contents" name="department" style="width: 400px;height: 200px; margin: auto;"><br>
         <button type="button" onclick="writePost()" class="btn btn-warning">등록하기</button>
     </div>
 </div>
-<div class="black_bg2"></div>
-<div class="modal_wrap2">
-    <div class="modal_close2"><a href="#">close</a></div>
-    <div>
-        조회테스트
-    </div>
-</div>
+
 </body>
 </html>
